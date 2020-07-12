@@ -4,12 +4,21 @@ datatype exp =
   | Negate of exp
   | Add of exp * exp
   | Mult of exp * exp
+  | String of string
+  | Rational of int * int
 
 exception BadResult of string
 
+(* add values, for different values *)
+(* functional decomposition *)
 fun add_values (v1, v2) =
   case (v1, v2) of
     (Int i, Int j) => Int (i+j)
+    | (Int i, String s)      => String(Int.toString i ^ s)
+    | (Int i, Rational(j,k)) => Rational(i*k+j, k)
+    | (String s, Int i)      => String(s ^ Int.toString i)
+    | (String s1, String s2) => String(s1 ^ s2)
+    | (String s, Rational(i,j)) => String(s ^ Int.toString i ^ "/" ^ Int.toString j)
     | _ => raise BadResult "non-ints in addition"
 
 (* eval (Negate (Int 5)); *)
@@ -23,6 +32,8 @@ fun eval e =
   | Mult(e1, e2) => (case (eval e1, eval e2) of
                       (Int i, Int j) => Int(i*j)
                     | _ => raise BadResult "non-ints")
+  | String _    => e
+  | Rational _  => e
 
 (* toString (Add (Int 5, Int 10))  *)
 fun toString e =
@@ -31,6 +42,8 @@ fun toString e =
     | Negate e1    => "-(" ^ (toString e1) ^ ")"
     | Add (e1,e2)  => "(" ^ (toString e1) ^ " + " ^ (toString e2) ^ ")"
     | Mult (e1,e2) => "(" ^ (toString e1) ^ " * " ^ (toString e2) ^ ")"
+    | String s => s
+    | Rational(i,j) => (Int.toString i) ^ "/" ^ (Int.toString j)
 
 fun hasZero e =
   case e of
@@ -38,6 +51,8 @@ fun hasZero e =
     | Negate e1 => hasZero e1
     | Add(e1, e2) => (hasZero e1) orelse (hasZero e2)
     | Mult(e1, e2) => (hasZero e1) orelse (hasZero e2)
+    | String _ => false
+    | Rational(i,j) => i=0
 
 (* exp -> exp *)
 (* noNegConstants (Int (~5)) *)
@@ -48,3 +63,4 @@ fun noNegConstants e =
   | Negate e1   => Negate(noNegConstants e1)
   | Add(e1, e2) => Add(noNegConstants e1, noNegConstants e2)
   | Mult(e1, e2) => Mult(noNegConstants e1, noNegConstants e2)
+  | String _ => e
