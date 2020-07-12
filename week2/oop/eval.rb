@@ -35,6 +35,31 @@ class Int < Value
       self
     end
   end
+
+  # not OOP solution, but the concept is 'simpler'
+  # def add_values v
+  #   if v.is_a? Int
+  #     Int.new(v.i + i)
+  #   elsif v.is_a? MyRational
+  #     # MyRational.new(v.i + v.j)
+  #   else
+  #     MyString.new(v.s + i.to_s)
+  #   end
+  # end
+
+  # OOP solution using double dispatch
+  def add_values v # first dispatch
+    v.addInt self
+  end
+  def addInt v # second dispatch
+    Int.new(v.i + i)
+  end
+  def addString v # second dispatch
+    MyString.new(v.s + i.to_s)
+  end
+  def addRational v # second dispatch
+    # MyRational.new(v.s + i.to_s)
+  end
 end
 
 class Negate < Exp
@@ -63,7 +88,8 @@ class Add < Exp
     @e2 = e2
   end
   def eval
-    Int.new(e1.eval.i + e2.eval.i)
+    # Int.new(e1.eval.i + e2.eval.i)
+    e1.eval.add_values e2.eval
   end
   def toString
     "(" + e1.toString + " + " + e2.toString + ")"
@@ -93,5 +119,64 @@ class Mult < Exp
   end
   def noNegConstants
     Mult.new(e1.noNegConstants, e2.noNegConstants)
+  end
+end
+
+class MyString < Value
+  attr_reader :s
+  def initialize s
+    @s = s
+  end
+  def eval
+    self
+  end
+  def toString
+    s
+  end
+  def hasZero
+    false
+  end
+  def noNegConstants
+    self
+  end
+
+  # double-dispatch for adding values
+  def add_values v
+    v.addString self
+  end
+  def addInt v
+    MyString.new(v.i.to_s + s)
+  end
+  def addString v
+    # MyString.new(v.s + s)
+  end
+  def addRational v
+    # MyString.new(v.s + s)
+  end
+end
+
+class MyRational < Value
+  attr_reader :i, :j
+  def initialize(i,j)
+    @i = i
+    @j = j
+  end
+  def eval
+    self
+  end
+  def toString
+    i.to_s + "/" + j.to_s
+  end
+  def hasZero
+    i == 0
+  end
+  def noNegConstants
+    if i < 0 && j < 0
+      MyRational.new(-i, -j)
+    elsif j < 0
+      Negate.new(MyRational.new(i, -j))
+    elsif i < 0
+      Negate.new(MyRational.new(-i, j))
+    end
   end
 end
